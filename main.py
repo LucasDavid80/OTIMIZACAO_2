@@ -100,6 +100,16 @@ def main():
         elif opcao == "7":
             sigma = float(input("Desvio padrão do serviço σ: "))
             res = calcular_mg1(lamb, mu, sigma)
+        if opcao == "8":
+            mu = float(input("Taxa de atendimento μ: "))
+            s = int(input("Número de servidores s: "))
+            num_classes = int(input("Número de classes de prioridade: "))
+            lambdas = []
+            for i in range(num_classes):
+                lamb = float(input(f"  λ_{i+1} (taxa de chegada da classe {i+1}): "))
+                lambdas.append(lamb)
+            resultados = calcular_prioridade_non_preemptive(lambdas, mu, s)
+            mostrar_resultados_prioridade(resultados)
 
         mostrar_resultados(res)
 
