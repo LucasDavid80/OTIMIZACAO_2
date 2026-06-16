@@ -8,13 +8,7 @@ from models import (
 
 st.set_page_config(page_title="Modelos de Filas", layout="wide")
 
-st.markdown("""
-    <style>
-    .main { background-color: #f5f7f9; }
-    .stMetric { background-color: #ff0000; padding: 15px; border-radius: 10px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    </style>
-""", unsafe_allow_html=True)
+
 
 st.title("Simulador de Teoria de Filas")
 st.sidebar.header("Configurações")
@@ -32,7 +26,7 @@ escolha = st.sidebar.selectbox("Selecione o Modelo", menu)
 if escolha == "Prioridade Não-Preemptiva":
     st.header("Prioridade Não-Preemptiva")
 
-    mu = st.sidebar.number_input("Taxa de atendimento μ", min_value=0.01, value=3.0, step=0.1)
+    mu = st.sidebar.number_input("Taxa de atendimento μ", min_value=0.0001, value=3.0, step=0.0001, format="%.4f")
     s  = st.sidebar.number_input("Número de servidores (s)", min_value=1, value=1, step=1)
     num_classes = st.sidebar.number_input("Número de classes", min_value=2, max_value=8, value=2, step=1)
 
@@ -42,7 +36,7 @@ if escolha == "Prioridade Não-Preemptiva":
     cols = st.columns(int(num_classes))
     for i, col in enumerate(cols):
         with col:
-            lamb_k = st.number_input(f"λ_{i+1}", min_value=0.001, value=1.0, step=0.1, key=f"lamb_{i}")
+            lamb_k = st.number_input(f"λ_{i+1}", min_value=0.0001, value=1.0, step=0.0001, format="%.4f", key=f"lamb_{i}")
             lambdas.append(lamb_k)
 
     st.markdown("---")
@@ -70,7 +64,7 @@ if escolha == "Prioridade Não-Preemptiva":
 elif escolha == "Prioridade Preemptiva":
     st.header("Prioridade Preemptiva")
 
-    mu = st.sidebar.number_input("Taxa de atendimento μ", min_value=0.01, value=3.0, step=0.1)
+    mu = st.sidebar.number_input("Taxa de atendimento μ", min_value=0.0001, value=3.0, step=0.0001, format="%.4f")
     s  = st.sidebar.number_input("Número de servidores (s)", min_value=1, value=1, step=1)
     num_classes = st.sidebar.number_input("Número de classes", min_value=2, max_value=8, value=2, step=1)
 
@@ -80,7 +74,7 @@ elif escolha == "Prioridade Preemptiva":
     cols = st.columns(int(num_classes))
     for i, col in enumerate(cols):
         with col:
-            lamb_k = st.number_input(f"λ_{i+1}", min_value=0.001, value=1.0, step=0.1, key=f"lamb_pre_{i}")
+            lamb_k = st.number_input(f"λ_{i+1}", min_value=0.0001, value=1.0, step=0.0001, format="%.4f", key=f"lamb_pre_{i}")
             lambdas.append(lamb_k)
 
     st.markdown("---")
@@ -111,9 +105,9 @@ else:
     with st.container():
         col_in1, col_in2 = st.columns(2)
         with col_in1:
-            lamb = st.number_input("Taxa de chegada (λ)", min_value=0.01, value=1.0, step=0.1)
+            lamb = st.number_input("Taxa de chegada (λ)", min_value=0.0001, value=1.0, step=0.0001, format="%.4f")
         with col_in2:
-            mu = st.number_input("Taxa de atendimento (μ)", min_value=0.01, value=1.5, step=0.1)
+            mu = st.number_input("Taxa de atendimento (μ)", min_value=0.0001, value=1.5, step=0.0001, format="%.4f")
 
         col_ex1, col_ex2 = st.columns(2)
         s, K, N, sigma = 1, 1, 1, 0.0
@@ -125,7 +119,7 @@ else:
         if "n" in escolha.lower():
             N = col_ex1.number_input("População (N)", min_value=1, value=50)
         if "g/1" in escolha.lower():
-            sigma = col_ex1.number_input("Desvio Padrão (σ)", min_value=0.0, value=0.0, step=0.1)
+            sigma = col_ex1.number_input("Desvio Padrão (σ)", min_value=0.0, value=0.0, step=0.0001, format="%.4f")
 
     res = None
     if escolha == "M/M/1":     res = calcular_mm1(lamb, mu)
