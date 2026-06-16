@@ -10,6 +10,14 @@ from models import (
     calcular_mg1,
     calcular_prioridade_non_preemptive,
     calcular_prioridade_preemptive,
+    calcular_prob_n_mm1,
+    calcular_prob_greater_r_mm1,
+    calcular_prob_w_greater_t_mm1,
+    calcular_prob_wq_greater_t_mm1,
+    calcular_prob_n_mms,
+    calcular_prob_w_greater_t_mms,
+    calcular_prob_wq_greater_t_mms,
+    calcular_poisson_prob,
 )
 
 # APROXIMAÇÃO DE COMPARAÇÃO DE FLOATS (Tolerância padrão para arredondamentos dos PDFs)
@@ -349,3 +357,66 @@ def test_prioridade_preemptive_hospital_municipal():
     assert pytest.approx(res[0]["Wq"], abs=TOL) == 0.011
     assert pytest.approx(res[1]["Wq"], abs=TOL) == 0.080
     assert pytest.approx(res[2]["Wq"], abs=TOL) == 0.867
+
+
+def test_probabilidades_exercicios():
+    # Exercício 1 (M/M/1 com lambda = 12, mu = 16)
+    # 1c: P(N <= 4) = 1 - P(N > 4) = 1 - rho^5 = 1 - 0.75^5 = 0.7627
+    p_n_le_4 = 1 - calcular_prob_greater_r_mm1(lamb=12.0, mu=16.0, r=4)
+    assert pytest.approx(p_n_le_4, abs=TOL) == 0.7627
+    
+    # 1g: P(W > 20 dias) = P(W > 2/3 meses) = e^(-16 * (1 - 0.75) * 2/3) = e^(-8/3) = 0.06948
+    p_w_gt_20 = calcular_prob_w_greater_t_mm1(lamb=12.0, mu=16.0, t=20.0/30.0)
+    assert pytest.approx(p_w_gt_20, abs=TOL) == 0.069
+    
+    # 1h: P(Wq > 15 dias) = P(Wq > 0.5 meses) = 0.75 * e^(-2) = 0.1015
+    p_wq_gt_15 = calcular_prob_wq_greater_t_mm1(lamb=12.0, mu=16.0, t=0.5)
+    assert pytest.approx(p_wq_gt_15, abs=TOL) == 0.1015
+
+    # Exercício 2 (M/M/1 com lambda = 12.8, mu = 16.0)
+    # 2e: P(W > 30 min) = P(W > 0.5 h) = e^(-1.6) = 0.2019
+    p_w_gt_30 = calcular_prob_w_greater_t_mm1(lamb=12.8, mu=16.0, t=0.5)
+    assert pytest.approx(p_w_gt_30, abs=TOL) == 0.2019
+
+    # 2f: P(Wq > 15 min) = P(Wq > 0.25 h) = 0.8 * e^(-0.8) = 0.3595
+    p_wq_gt_15 = calcular_prob_wq_greater_t_mm1(lamb=12.8, mu=16.0, t=0.25)
+    assert pytest.approx(p_wq_gt_15, abs=TOL) == 0.3595
+
+    # 2g: Poisson arrivals (x = 10, rate = 12.8, T = 1.0)
+    p_arr_10 = calcular_poisson_prob(rate=12.8, T=1.0, x=10)
+    assert pytest.approx(p_arr_10, abs=TOL) == 0.0898
+
+    # 2h: Poisson services (y = 12, rate = 16.0, T = 1.0)
+    p_serv_12 = calcular_poisson_prob(rate=16.0, T=1.0, x=12)
+    assert pytest.approx(p_serv_12, abs=TOL) == 0.066
+
+    # 2i: P(N = 10) = 0.2 * 0.8^10 = 0.0215
+    p_n_10 = calcular_prob_n_mm1(lamb=12.8, mu=16.0, n=10)
+    assert pytest.approx(p_n_10, abs=TOL) == 0.0215
+
+    # Exercício 3 (M/M/1 com lambda = 8.0, mu = 10.0)
+    # 3: P(N < 6) = P(N <= 5) = 1 - rho^6 = 1 - 0.8^6 = 0.7378
+    p_n_lt_6 = 1 - calcular_prob_greater_r_mm1(lamb=8.0, mu=10.0, r=5)
+    assert pytest.approx(p_n_lt_6, abs=TOL) == 0.7378
+
+    # Exercício 5 (M/M/1 com lambda = 3.0, mu = 4.0)
+    # 5e: P(N = 6) = 0.25 * 0.75^6 = 0.0445
+    p_n_6 = calcular_prob_n_mm1(lamb=3.0, mu=4.0, n=6)
+    assert pytest.approx(p_n_6, abs=TOL) == 0.0445
+    
+    # 5g: P(W > 2) = e^(-2) = 0.1353
+    p_w_gt_2 = calcular_prob_w_greater_t_mm1(lamb=3.0, mu=4.0, t=2.0)
+    assert pytest.approx(p_w_gt_2, abs=TOL) == 0.1353
+    
+    # 5h: P(Wq > 1.5) = 0.75 * e^(-1.5) = 0.1673
+    p_wq_gt_1_5 = calcular_prob_wq_greater_t_mm1(lamb=3.0, mu=4.0, t=1.5)
+    assert pytest.approx(p_wq_gt_1_5, abs=TOL) == 0.1673
+
+    # Exercício 7 (M/M/s com s = 2, lambda = 2.0, mu = 3.0)
+    # 7h: P(Wq > 0.5) (s=2) = 0.023
+    p_wq_gt_0_5_s2 = calcular_prob_wq_greater_t_mms(lamb=2.0, mu=3.0, s=2, t=0.5)
+    assert pytest.approx(p_wq_gt_0_5_s2, abs=TOL) == 0.023
+    
+    # 7i: P(W > 1.0) (s=2) = 0.0655
+    p_w_gt_1_s2 = calcular_prob_w_greater_t_mms(lamb=2.0, mu=3.0, s=2, t=1.0)
+    assert pytest.approx(p_w_gt_1_s2, abs=TOL) == 0.0655

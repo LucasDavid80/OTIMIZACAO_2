@@ -38,7 +38,8 @@ def calcular_mm1k(lamb, mu, K):
     Lq = L - (1 - P0)
     W = L / lamb_barra
     Wq = Lq / lamb_barra
-    return {"rho": rho, "P0": P0, "L": L, "Lq": Lq, "W": W, "Wq": Wq}
+    probs = [P0 * (rho ** n) for n in range(K + 1)]
+    return {"rho": rho, "P0": P0, "L": L, "Lq": Lq, "W": W, "Wq": Wq, "probs": probs}
 
 
 def calcular_mmsk(lamb, mu, s, K):
@@ -58,7 +59,7 @@ def calcular_mmsk(lamb, mu, s, K):
     lamb_barra = lamb * (1 - probs[K])
     W = L / lamb_barra
     Wq = Lq / lamb_barra
-    return {"rho": rho, "P0": P0, "L": L, "Lq": Lq, "W": W, "Wq": Wq}
+    return {"rho": rho, "P0": P0, "L": L, "Lq": Lq, "W": W, "Wq": Wq, "probs": probs}
 
 
 def calcular_mm1n(lamb, mu, N):
@@ -69,7 +70,8 @@ def calcular_mm1n(lamb, mu, N):
     lamb_barra = lamb * (N - L)
     W = L / lamb_barra
     Wq = Lq / lamb_barra
-    return {"P0": P0, "L": L, "Lq": Lq, "W": W, "Wq": Wq}
+    probs = [(math.factorial(N) / math.factorial(N - n)) * (lamb / mu) ** n * P0 for n in range(N + 1)]
+    return {"P0": P0, "L": L, "Lq": Lq, "W": W, "Wq": Wq, "probs": probs}
 
 
 def calcular_mmsn(lamb, mu, s, N):
@@ -94,7 +96,7 @@ def calcular_mmsn(lamb, mu, s, N):
     lamb_barra = lamb * (N - L)
     W = L / lamb_barra
     Wq = Lq / lamb_barra
-    return {"P0": P0, "L": L, "Lq": Lq, "W": W, "Wq": Wq}
+    return {"P0": P0, "L": L, "Lq": Lq, "W": W, "Wq": Wq, "probs": probs}
 
 
 def calcular_mg1(lamb, mu, sigma):
@@ -190,3 +192,104 @@ def calcular_prioridade_preemptive(lambdas, mu, s):
         soma_anterior = soma_atual
 
     return resultados
+
+
+def calcular_prob_n_mm1(lamb, mu, n):
+    """
+    Calcula a probabilidade de haver exatamente n clientes no sistema (M/M/1).
+    Fórmula do material: P(n) = (1 - rho) * rho^n
+    """
+    rho = lamb / mu
+    return (1 - rho) * (rho ** n)
+
+
+def calcular_prob_greater_r_mm1(lamb, mu, r):
+    """
+    Calcula a probabilidade de haver mais de r clientes no sistema (M/M/1).
+    Fórmula do material: P(n > r) = (lambda / mu)^(r + 1)
+    """
+    rho = lamb / mu
+    return rho ** (r + 1)
+
+
+def calcular_prob_w_greater_t_mm1(lamb, mu, t):
+    """
+    Calcula a probabilidade de o tempo de espera no sistema (W) ser maior que t (M/M/1).
+    Fórmula do material: P(W > t) = e^(-mu * (1 - rho) * t)
+    """
+    rho = lamb / mu
+    return math.exp(-mu * (1 - rho) * t)
+
+
+def calcular_prob_wq_greater_t_mm1(lamb, mu, t):
+    """
+    Calcula a probabilidade de o tempo de espera na fila (Wq) ser maior que t (M/M/1).
+    Fórmula do material: P(Wq > t) = rho * e^(-mu * (1 - rho) * t)
+    """
+    rho = lamb / mu
+    return rho * math.exp(-mu * (1 - rho) * t)
+
+
+def calcular_prob_n_mms(lamb, mu, s, n):
+    """
+    Calcula a probabilidade de haver exatamente n clientes no sistema (M/M/s).
+    Fórmula do material:
+    n <= s: Pn = ((lambda/mu)^n / n!) * P0
+    n >= s: Pn = ((lambda/mu)^n / (s! * s^(n-s))) * P0
+    """
+    rho = lamb / (s * mu)
+    soma = sum((lamb / mu) ** i / math.factorial(i) for i in range(s))
+    termo = ((lamb / mu) ** s) / (math.factorial(s) * (1 - rho))
+    P0 = 1 / (soma + termo)
+    if n <= s:
+        return ((lamb / mu) ** n) / math.factorial(n) * P0
+    else:
+        return ((lamb / mu) ** n) / (math.factorial(s) * (s ** (n - s))) * P0
+
+
+def calcular_prob_w_greater_t_mms(lamb, mu, s, t):
+    """
+    Calcula a probabilidade de o tempo de espera no sistema (W) ser maior que t (M/M/s).
+    Fórmula do material:
+    P(W > t) = e^(-mu*t) * [ 1 + (P0 * (lambda/mu)^s) / (s! * (1 - rho)) * (1 - e^(-mu*t*(s - 1 - lambda/mu))) / (s - 1 - lambda/mu) ]
+    """
+    rho = lamb / (s * mu)
+    soma = sum((lamb / mu) ** i / math.factorial(i) for i in range(s))
+    termo = ((lamb / mu) ** s) / (math.factorial(s) * (1 - rho))
+    P0 = 1 / (soma + termo)
+    
+    coef = (P0 * (lamb / mu) ** s) / (math.factorial(s) * (1 - rho))
+    exponent = s - 1 - (lamb / mu)
+    
+    if abs(exponent) < 1e-9:
+        term = mu * t
+    else:
+        term = (1 - math.exp(-mu * t * exponent)) / exponent
+        
+    return math.exp(-mu * t) * (1 + coef * term)
+
+
+def calcular_prob_wq_greater_t_mms(lamb, mu, s, t):
+    """
+    Calcula a probabilidade de o tempo de espera na fila (Wq) ser maior que t (M/M/s).
+    Fórmula do material:
+    P(Wq > t) = (1 - P(Wq = 0)) * e^(-s*mu*(1-rho)*t)
+    onde P(Wq = 0) = sum_{n=0}^{s-1} Pn
+    """
+    rho = lamb / (s * mu)
+    soma = sum((lamb / mu) ** i / math.factorial(i) for i in range(s))
+    termo = ((lamb / mu) ** s) / (math.factorial(s) * (1 - rho))
+    P0 = 1 / (soma + termo)
+    
+    P_wq_0 = sum(((lamb / mu) ** n) / math.factorial(n) * P0 for n in range(s))
+    return (1 - P_wq_0) * math.exp(-s * mu * (1 - rho) * t)
+
+
+def calcular_poisson_prob(rate, T, x):
+    """
+    Calcula a probabilidade de ocorrerem exatamente x eventos em um intervalo T
+    sob um processo de Poisson com taxa 'rate'.
+    Fórmula do material: P(x) = (rate * T)^x * e^(-rate * T) / x!
+    """
+    mean = rate * T
+    return (math.exp(-mean) * (mean ** x)) / math.factorial(x)

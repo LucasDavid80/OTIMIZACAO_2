@@ -4,6 +4,10 @@ from models import (
     calcular_mm1n, calcular_mmsn, calcular_mg1,
     calcular_prioridade_non_preemptive,
     calcular_prioridade_preemptive,
+    calcular_prob_n_mm1, calcular_prob_greater_r_mm1,
+    calcular_prob_w_greater_t_mm1, calcular_prob_wq_greater_t_mm1,
+    calcular_prob_n_mms, calcular_prob_w_greater_t_mms,
+    calcular_prob_wq_greater_t_mms, calcular_poisson_prob,
 )
 
 st.set_page_config(page_title="Modelos de Filas", layout="wide")
@@ -140,5 +144,93 @@ else:
         m4.metric("Lq (Fila)",     f"{res['Lq']:.4f}")
         m5.metric("W (Sistema)",   f"{res['W']:.4f}")
         m6.metric("Wq (Fila)",     f"{res['Wq']:.4f}")
+
+        # Seção de Probabilidades Adicionais (com base nos slides e exercícios)
+        st.markdown("---")
+        st.subheader("📊 Cálculos de Probabilidades (Fórmulas do Material)")
+        
+        tab1, tab2, tab3 = st.tabs([
+            "👥 Probabilidade de Clientes (N)", 
+            "⏱️ Tempo de Espera (W / Wq)", 
+            "📈 Processo de Poisson (Chegadas/Atendimentos)"
+        ])
+        
+        with tab1:
+            st.markdown("### Probabilidade do número de clientes no sistema")
+            n_val = st.number_input("Número de clientes (n)", min_value=0, value=1, step=1, key="prob_n_input")
+            
+            p_n = None
+            p_gt = None
+            p_le = None
+            p_lt = None
+            p_ge = None
+            
+            if escolha == "M/M/1":
+                p_n = calcular_prob_n_mm1(lamb, mu, n_val)
+                p_gt = calcular_prob_greater_r_mm1(lamb, mu, n_val)
+                p_le = 1.0 - p_gt
+                p_lt = 1.0 - calcular_prob_greater_r_mm1(lamb, mu, n_val - 1) if n_val > 0 else 0.0
+                p_ge = p_n + p_gt
+            elif escolha == "M/M/s":
+                p_n = calcular_prob_n_mms(lamb, mu, s, n_val)
+                p_le = sum(calcular_prob_n_mms(lamb, mu, s, k) for k in range(n_val + 1))
+                p_gt = max(0.0, 1.0 - p_le)
+                p_lt = sum(calcular_prob_n_mms(lamb, mu, s, k) for k in range(n_val)) if n_val > 0 else 0.0
+                p_ge = max(0.0, 1.0 - p_lt)
+            elif "probs" in res:
+                probs = res["probs"]
+                if n_val < len(probs):
+                    p_n = probs[n_val]
+                    p_le = sum(probs[:n_val + 1])
+                    p_gt = max(0.0, 1.0 - p_le)
+                    p_lt = sum(probs[:n_val]) if n_val > 0 else 0.0
+                    p_ge = max(0.0, 1.0 - p_lt)
+            
+            if p_n is not None:
+                c1, c2, c3 = st.columns(3)
+                c1.metric(f"P(N = {n_val})", f"{p_n:.4%}", help="Exatamente n clientes no sistema")
+                c2.metric(f"P(N > {n_val})", f"{p_gt:.4%}", help="Mais de n clientes no sistema")
+                c3.metric(f"P(N ≤ {n_val})", f"{p_le:.4%}", help="No máximo n clientes no sistema")
+                
+                c4, c5, _ = st.columns(3)
+                c4.metric(f"P(N < {n_val})", f"{p_lt:.4%}", help="Menos de n clientes no sistema")
+                c5.metric(f"P(N ≥ {n_val})", f"{p_ge:.4%}", help="Pelo menos n clientes no sistema")
+            else:
+                st.info("Cálculos de probabilidade do número de clientes não estão disponíveis para este modelo.")
+                
+        with tab2:
+            st.markdown("### Probabilidade do tempo de espera/permanência exceder um limite")
+            if escolha in ["M/M/1", "M/M/s"]:
+                t_val = st.number_input("Tempo limite (t)", min_value=0.0, value=1.0, step=0.1, key="prob_t_input")
+                
+                if escolha == "M/M/1":
+                    p_w = calcular_prob_w_greater_t_mm1(lamb, mu, t_val)
+                    p_wq = calcular_prob_wq_greater_t_mm1(lamb, mu, t_val)
+                else: # M/M/s
+                    p_w = calcular_prob_w_greater_t_mms(lamb, mu, s, t_val)
+                    p_wq = calcular_prob_wq_greater_t_mms(lamb, mu, s, t_val)
+                    
+                c1, c2 = st.columns(2)
+                c1.metric(f"P(W > {t_val})", f"{p_w:.4%}", help="Probabilidade de passar mais do que t no sistema")
+                c2.metric(f"P(Wq > {t_val})", f"{p_wq:.4%}", help="Probabilidade de esperar mais do que t na fila")
+            else:
+                st.info("Probabilidade de espera temporal (W > t e Wq > t) está disponível analiticamente para M/M/1 e M/M/s.")
+                
+        with tab3:
+            st.markdown("### Processo de Poisson (Chegadas e Atendimentos em um Período)")
+            st.markdown("Verifique a probabilidade de chegadas ou atendimentos com base nos parâmetros atuais do sistema.")
+            
+            c_p1, c_p2 = st.columns(2)
+            with c_p1:
+                t_window = st.number_input("Intervalo de tempo (T)", min_value=0.0001, value=1.0, step=0.1, key="poisson_t")
+            with c_p2:
+                events_x = st.number_input("Número de eventos (x)", min_value=0, value=5, step=1, key="poisson_x")
+                
+            p_arr = calcular_poisson_prob(lamb, t_window, events_x)
+            p_serv = calcular_poisson_prob(mu, t_window, events_x)
+            
+            c1, c2 = st.columns(2)
+            c1.metric(f"P(x = {events_x} chegadas em T = {t_window})", f"{p_arr:.4%}")
+            c2.metric(f"P(x = {events_x} atendimentos em T = {t_window})", f"{p_serv:.4%}", help="Assumindo que o servidor está ocupado")
     elif res is None:
         st.error("A taxa de chegada deve ser menor que a capacidade total de atendimento (λ < sμ).")
