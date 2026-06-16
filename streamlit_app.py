@@ -3,6 +3,7 @@ from models import (
     calcular_mm1, calcular_mms, calcular_mm1k, calcular_mmsk,
     calcular_mm1n, calcular_mmsn, calcular_mg1,
     calcular_prioridade_non_preemptive,
+    calcular_prioridade_preemptive,
 )
 
 st.set_page_config(page_title="Modelos de Filas", layout="wide")
@@ -97,7 +98,40 @@ else:
     elif escolha == "M/M/s/N":     res = calcular_mmsn(lamb, mu, s, N)
     elif escolha == "M/G/1":       res = calcular_mg1(lamb, mu, sigma)
     elif escolha == "Prioridade Preemptiva":
-        st.warning("Modelo Preemptivo ainda não implementado.")
+        st.header("Prioridade Preemptiva")
+
+        mu = st.sidebar.number_input("Taxa de atendimento μ", min_value=0.01, value=3.0, step=0.1)
+        s  = st.sidebar.number_input("Número de servidores (s)", min_value=1, value=1, step=1)
+        num_classes = st.sidebar.number_input("Número de classes", min_value=2, max_value=8, value=2, step=1)
+
+        st.info("**Classe 1 = maior prioridade.** Ao chegar cliente de classe superior, o serviço atual é interrompido. μ é igual para todas as classes.")
+
+        lambdas = []
+        cols = st.columns(int(num_classes))
+        for i, col in enumerate(cols):
+            with col:
+                lamb_k = st.number_input(f"λ_{i+1}", min_value=0.001, value=1.0, step=0.1, key=f"lamb_pre_{i}")
+                lambdas.append(lamb_k)
+
+        st.markdown("---")
+
+        resultados = calcular_prioridade_preemptive(lambdas, mu, int(s))
+
+        if resultados is None:
+            rho_info = sum(lambdas) / (int(s) * mu)
+            st.error(f"ρ total = {rho_info:.4f} ≥ 1")
+        else:
+            rho_total = resultados[0]["rho_total"]
+            st.success(f"ρ total = {rho_total:.4f}")
+            st.subheader("Resultados por Classe")
+            for r in resultados:
+                titulo = f"Classe {r['classe']}  (λ={r['lamb']}, μ={r['mu']}, ρ={r['rho']:.4f})"
+                with st.expander(titulo, expanded=True):
+                    c1, c2, c3, c4 = st.columns(4)
+                    c1.metric("Wq", f"{r['Wq']:.4f}")
+                    c2.metric("W",  f"{r['W']:.4f}")
+                    c3.metric("Lq", f"{r['Lq']:.4f}")
+                    c4.metric("L",  f"{r['L']:.4f}")
 
     if res:
         st.markdown("---")
@@ -109,5 +143,5 @@ else:
         m4.metric("Lq (Fila)",     f"{res['Lq']:.4f}")
         m5.metric("W (Sistema)",   f"{res['W']:.4f}")
         m6.metric("Wq (Fila)",     f"{res['Wq']:.4f}")
-    elif res is None and escolha not in ("Prioridade Preemptiva",):
+    elif res is None and escolha not in ("Prioridade Preemptiva", "Prioridade Não-Preemptiva"):
         st.error("A taxa de chegada deve ser menor que a capacidade total de atendimento (λ < sμ).")

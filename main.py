@@ -2,6 +2,7 @@ from models import (
     calcular_mm1, calcular_mms, calcular_mm1k, calcular_mmsk,
     calcular_mm1n, calcular_mmsn, calcular_mg1,
     calcular_prioridade_non_preemptive,
+    calcular_prioridade_preemptive,
 )
 
 
@@ -22,12 +23,12 @@ def mostrar_resultados(res):
     print("=" * 30)
 
 
-def mostrar_resultados_prioridade(resultados):
+def mostrar_resultados_prioridade(resultados, titulo="PRIORIDADE NÃO-PREEMPTIVA"):
     if resultados is None:
         print("\nErro: Sistema instável (ρ total ≥ 1) ou parâmetros inválidos.")
         return
     print("\n" + "=" * 55)
-    print("   RESULTADOS — PRIORIDADE NÃO-PREEMPTIVA")
+    print(f"   RESULTADOS — {titulo}")
     print("=" * 55)
     print(f"  ρ total = {resultados[0]['rho_total']:.4f}")
     print("=" * 55)
@@ -53,16 +54,17 @@ def main():
         print("6 - M/M/s/N")
         print("7 - M/G/1")
         print("8 - Prioridade Não-Preemptiva")
+        print("9 - Prioridade Preemptiva")
         print("0 - Sair")
 
         opcao = input("\nEscolha o modelo: ").strip()
         if opcao == "0":
             break
-        if opcao not in "12345678":
+        if opcao not in "123456789":
             print("Opção inválida!")
             continue
 
-        if opcao == "8":
+        if opcao in ("8", "9"):
             mu = float(input("Taxa de atendimento μ: "))
             s = int(input("Número de servidores s: "))
             num_classes = int(input("Número de classes de prioridade: "))
@@ -70,8 +72,12 @@ def main():
             for i in range(num_classes):
                 lamb = float(input(f"  λ_{i+1} (taxa de chegada da classe {i+1}): "))
                 lambdas.append(lamb)
-            resultados = calcular_prioridade_non_preemptive(lambdas, mu, s)
-            mostrar_resultados_prioridade(resultados)
+            if opcao == "8":
+                resultados = calcular_prioridade_non_preemptive(lambdas, mu, s)
+                mostrar_resultados_prioridade(resultados, "PRIORIDADE NÃO-PREEMPTIVA")
+            else:
+                resultados = calcular_prioridade_preemptive(lambdas, mu, s)
+                mostrar_resultados_prioridade(resultados, "PRIORIDADE PREEMPTIVA")
             continue
 
         lamb = float(input("Taxa de chegada λ: "))
@@ -100,17 +106,6 @@ def main():
         elif opcao == "7":
             sigma = float(input("Desvio padrão do serviço σ: "))
             res = calcular_mg1(lamb, mu, sigma)
-        if opcao == "8":
-            mu = float(input("Taxa de atendimento μ: "))
-            s = int(input("Número de servidores s: "))
-            num_classes = int(input("Número de classes de prioridade: "))
-            lambdas = []
-            for i in range(num_classes):
-                lamb = float(input(f"  λ_{i+1} (taxa de chegada da classe {i+1}): "))
-                lambdas.append(lamb)
-            resultados = calcular_prioridade_non_preemptive(lambdas, mu, s)
-            mostrar_resultados_prioridade(resultados)
-
         mostrar_resultados(res)
 
 
