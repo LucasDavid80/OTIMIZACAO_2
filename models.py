@@ -111,20 +111,6 @@ def calcular_mg1(lamb, mu, sigma):
 
 
 def calcular_prioridade_non_preemptive(lambdas, mu, s):
-    """
-    Prioridade Não-Preemptiva (exponencial, μ comum a todas as classes).
-
-    Parâmetros
-    ----------
-    lambdas : list of float  — taxas de chegada por classe (ordem decrescente de prioridade)
-    mu      : float          — taxa de atendimento (igual para todas as classes)
-    s       : int            — número de servidores
-
-    Retorna
-    -------
-    list of dict com chaves: classe, lamb, mu, rho, rho_total, Wq, W, Lq, L
-    None se o sistema for instável.
-    """
     n_classes = len(lambdas)
     lamb_total = sum(lambdas)
     rhos = [l / (s * mu) for l in lambdas]
@@ -133,13 +119,10 @@ def calcular_prioridade_non_preemptive(lambdas, mu, s):
     if rho_total >= 1:
         return None
 
-    # Fator F do denominador (slide 11 do professor):
-    # F = s! * (sμ - λ_total) / r^s * Σ_{j=0}^{s-1} r^j/j!  +  sμ
     r = lamb_total / mu
     soma_erlang = sum(r ** j / math.factorial(j) for j in range(s))
     F = math.factorial(s) * (s * mu - lamb_total) / r ** s * soma_erlang + s * mu
 
-    # σ_k = Σ_{i=1}^{k} λi / (s*μ)  acumulado (σ_0 = 0)
     sigma = [0.0]
     for l in lambdas:
         sigma.append(sigma[-1] + l / (s * mu))
@@ -163,67 +146,47 @@ def calcular_prioridade_non_preemptive(lambdas, mu, s):
 
 
 def calcular_prioridade_preemptive(lambdas, mu, s):
-    """
-    Prioridade Preemptiva (exponencial, μ comum a todas as classes).
+    if mu <= 0 or s <= 0:
+        return None
 
-    Na disciplina preemptiva, um cliente de classe k em serviço é
-    interrompido ao chegar um cliente de classe superior (menor índice).
-    Pela formulação de Kleinrock, a espera de cada classe k depende
-    apenas das classes de prioridade maior ou igual a k (σ_k acumulado).
-
-    Parâmetros
-    ----------
-    lambdas : list of float  — taxas de chegada por classe (ordem decrescente de prioridade)
-    mu      : float          — taxa de atendimento (igual para todas as classes)
-    s       : int            — número de servidores
-
-    Retorna
-    -------
-    list of dict com chaves: classe, lamb, mu, rho, rho_total, Wq, W, Lq, L
-    None se o sistema for instável.
-    """
-    n_classes = len(lambdas)
-    lamb_total = sum(lambdas)
-    rhos = [l / (s * mu) for l in lambdas]
-    rho_total = sum(rhos)
+    rho_total = sum(lambdas) / (s * mu)
 
     if rho_total >= 1:
         return None
 
-    # Fator F — mesmo da non-preemptive (depende do tráfego total e de s)
-    r = lamb_total / mu
-    soma_erlang = sum(r ** j / math.factorial(j) for j in range(s))
-    F = math.factorial(s) * (s * mu - lamb_total) / r ** s * soma_erlang + s * mu
-
-    # σ_k acumulado: σ_0 = 0, σ_k = Σ_{i=1}^{k} λi / (s*μ)
-    sigma = [0.0]
-    for l in lambdas:
-        sigma.append(sigma[-1] + l / (s * mu))
-
     resultados = []
-    for k in range(n_classes):
-        # Formulação preemptiva de Kleinrock:
-        # Wqk = 1/F * [1/(1 - σ_k) - 1/(1 - σ_{k+1})]  /  λ_k
-        # que equivale a calcular a diferença das funções acumuladas dividida por λ_k,
-        # produzindo o tempo médio de espera na fila para a classe k.
-        #
-        # Como F já contém a dimensão de taxa (serve como denominador da fórmula geral),
-        # usamos a forma compacta:
-        #   Wqk = (1/F) * (σ_{k+1} - σ_k) / ((1 - σ_k) * (1 - σ_{k+1}))
-        # que é a versão preemptiva — diferente da non-preemptive que usa
-        # 1 / (F * (1-σ_k) * (1-σ_{k+1}))  diretamente sem o fator (σ_{k+1}-σ_k).
-        delta_sigma = sigma[k + 1] - sigma[k]   # = λ_k / (s*μ) = ρ_k
-        Wqk = delta_sigma / (F * (1 - sigma[k]) * (1 - sigma[k + 1]))
-        Wk  = Wqk + 1.0 / mu
-        Lqk = lambdas[k] * Wqk
-        Lk  = lambdas[k] * Wk
+
+    soma_anterior = 0
+
+    for k, lamb_k in enumerate(lambdas):
+
+        soma_atual = soma_anterior + lamb_k
+
+        fator1 = 1 - (soma_anterior / (s * mu))
+        fator2 = 1 - (soma_atual / (s * mu))
+
+        W = (1 / mu) / (fator1 * fator2)
+
+        Wq = W - (1 / mu)
+
+        lambda_acumulado = soma_atual
+
+        L = lambda_acumulado * W
+
+        Lq = L - (lambda_acumulado / mu)
+
         resultados.append({
-            "classe":    k + 1,
-            "lamb":      lambdas[k],
-            "mu":        mu,
-            "rho":       rhos[k],
+            "classe": k + 1,
+            "lamb": lamb_k,
+            "mu": mu,
+            "rho": lamb_k / (s * mu),
             "rho_total": rho_total,
-            "Wq": Wqk, "W": Wk,
-            "Lq": Lqk, "L": Lk,
+            "W": W,
+            "Wq": Wq,
+            "L": L,
+            "Lq": Lq
         })
+
+        soma_anterior = soma_atual
+
     return resultados
