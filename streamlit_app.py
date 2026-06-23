@@ -16,50 +16,71 @@ st.set_page_config(page_title="Modelos de Filas", layout="wide")
 
 st.title("Simulador de Teoria de Filas")
 
-# Expander de Guia de Fórmulas e Conversões
-with st.expander("📖 Guia de Fórmulas e Conversões (Como achar λ e μ)", expanded=False):
+# Expander de Fórmulas e Símbolos
+with st.expander("📖 Fórmulas e Glossário de Símbolos", expanded=False):
     st.markdown("""
-    ### 📌 Como encontrar as taxas $\lambda$ (Chegada) e $\mu$ (Atendimento)
-    Muitos exercícios informam **tempos médios** em vez de taxas diretas. Use as fórmulas abaixo para convertê-los antes de colocar no simulador:
+    ### 🔤 Glossário de Símbolos
+    *   $\lambda$ (**lambda**): Taxa de chegada de clientes
+    *   $\mu$ (**mu**): Taxa de atendimento por servidor
+    *   $\\rho$ (**rho**): Fator de utilização do sistema (fator de ocupação)
+    *   $\sigma$ (**sigma**): Desvio padrão do tempo de atendimento (no M/G/1)
+    *   $\sigma_k$ (**sigma k**): Fator de utilização acumulado até a classe de prioridade $k$
+    *   $P_0$ (**P zero**): Probabilidade do sistema estar vazio/ocioso
+    *   $P_n$ (**P ene**): Probabilidade de haver exatamente $n$ clientes no sistema
+    *   $L$ (**L**): Número médio de clientes no sistema
+    *   $L_q$ (**L q**): Número médio de clientes na fila
+    *   $W$ (**W**): Tempo médio de permanência no sistema (espera + atendimento)
+    *   $W_q$ (**W q**): Tempo médio de espera na fila
+    *   $s$ (**s**): Número de servidores/canais
+    *   $K$ (**K**): Capacidade máxima do sistema (no M/M/1/K e M/M/s/K)
+    *   $N$ (**N**): Tamanho da população finita (no M/M/1/N e M/M/s/N)
     
+    ---
+    
+    ### 📐 Fórmulas de Conversão (Taxas)
     *   **Taxa de Chegada ($\lambda$):**
-        $$\lambda = \\frac{1}{\\text{Tempo Médio Entre Chegadas } (E[T_a])}$$
-        *Exemplo:* Se os clientes chegam a cada **4 minutos**, a taxa de chegada é $\lambda = \\frac{1}{4} = 0.25$ clientes por minuto. Para trabalhar na escala de horas, multiplique por 60: $\lambda = 0.25 \\times 60 = 15$ clientes/hora.
-        
+        $$\lambda = \\frac{1}{E[T_a]}$$
+        *(onde $E[T_a]$ é o Tempo Médio Entre Chegadas)*
     *   **Taxa de Atendimento ($\mu$):**
-        $$\mu = \\frac{1}{\\text{Tempo Médio de Atendimento } (E[T_s])}$$
-        *Exemplo:* Se o atendimento demora em média **15 minutos**, a taxa de serviço é $\mu = \\frac{1}{15} \\approx 0.0667$ clientes por minuto. Para trabalhar na escala de horas, multiplique por 60: $\mu = 4$ clientes/hora.
+        $$\mu = \\frac{1}{E[T_s]}$$
+        *(onde $E[T_s]$ é o Tempo Médio de Atendimento)*
+    *   **Modelos de População Finita (com $/N$):**
+        *   $\lambda = 1 / \\text{Tempo Médio de Operação (Uptime)}$
+        *   $\mu = 1 / \\text{Tempo Médio de Reparo (Downtime)}$
         
-    *   **População Finita (Modelos $/N$):**
-        *   **$\lambda$ (Taxa de falha individual):** $\lambda = 1 / \\text{Tempo Médio de Operação (Uptime)}$
-        *   **$\mu$ (Taxa de reparo por técnico):** $\mu = 1 / \\text{Tempo Médio de Reparo (Downtime)}$
-        
-    *   **⚠️ Atenção com as unidades:**
-        Certifique-se de que **ambas as taxas ($\lambda$ e $\mu$) estão na mesma unidade de tempo** (ex: ambas em minutos ou ambas em horas).
-    
     ---
     
     ### 📊 Fórmulas Principais por Modelo
     
-    *   **Lei de Little (Geral):**
-        $$L = \\bar{\\lambda} W \\quad \\text{e} \\quad L_q = \\bar{\\lambda} W_q$$
-        *(Onde $\\bar{\\lambda}$ é a taxa de entrada efetiva no sistema).*
-        
-    *   **Modelo M/M/1:**
-        *   Utilização: $\\rho = \\frac{\\lambda}{\\mu}$
-        *   Probabilidade de sistema vazio: $P_0 = 1 - \\rho$
-        *   Clientes no sistema: $L = \\frac{\\lambda}{\\mu - \\lambda}$
-        *   Clientes na fila: $L_q = \\frac{\\lambda^2}{\\mu(\\mu - \\lambda)}$
-        *   Tempo no sistema: $W = \\frac{1}{\\mu - \\lambda}$
-        *   Tempo na fila: $W_q = \\frac{\\lambda}{\\mu(\\mu - \\lambda)}$
-        
-    *   **Modelo M/G/1 (Pollaczek-Khintchine):**
-        *   Clientes na fila: $L_q = \\frac{\\lambda^2 \sigma^2 + \\rho^2}{2(1 - \\rho)}$
-        *   Tempo na fila: $W_q = \\frac{L_q}{\\lambda}$
-        
-    *   **Modelo M/M/s:**
-        *   Utilização: $\\rho = \\frac{\\lambda}{s\\mu}$
-        *   Clientes na fila: $L_q = \\frac{P_0 (\\lambda/\\mu)^s \\rho}{s! (1-\\rho)^2}$
+    #### Lei de Little (Geral)
+    $$L = \\bar{\\lambda} W \\quad \\text{e} \\quad L_q = \\bar{\\lambda} W_q$$
+    *(onde $\\bar{\\lambda}$ é a taxa de entrada efetiva no sistema)*
+    
+    #### Modelo M/M/1
+    *   $\\rho = \\frac{\\lambda}{\\mu}$
+    *   $P_0 = 1 - \\rho$
+    *   $L = \\frac{\\lambda}{\\mu - \\lambda}$
+    *   $L_q = \\frac{\\lambda^2}{\\mu(\\mu - \\lambda)}$
+    *   $W = \\frac{1}{\\mu - \\lambda}$
+    *   $W_q = \\frac{\\lambda}{\\mu(\\mu - \\lambda)}$
+    *   $P_n = (1 - \\rho)\\rho^n$
+    *   $P(N > r) = \\rho^{r+1}$
+    *   $P(W > t) = e^{-\\mu(1-\\rho)t}$
+    *   $P(W_q > t) = \\rho e^{-\\mu(1-\\rho)t}$
+    
+    #### Modelo M/G/1 (Pollaczek-Khintchine)
+    *   $\\rho = \\frac{\\lambda}{\\mu}$
+    *   $L_q = \\frac{\\lambda^2 \\sigma^2 + \\rho^2}{2(1 - \\rho)}$
+    *   $L = L_q + \\rho$
+    *   $W_q = \\frac{L_q}{\\lambda}$
+    *   $W = W_q + \\frac{1}{\\mu}$
+    
+    #### Modelo M/M/s
+    *   $\\rho = \\frac{\\lambda}{s\\mu}$
+    *   $L_q = \\frac{P_0 (\\lambda/\\mu)^s \\rho}{s! (1-\\rho)^2}$
+    *   $L = L_q + \\frac{\\lambda}{\\mu}$
+    *   $W_q = \\frac{L_q}{\\lambda}$
+    *   $W = W_q + \\frac{1}{\\mu}$
     """)
 
 st.sidebar.header("Configurações")
