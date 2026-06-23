@@ -15,6 +15,53 @@ st.set_page_config(page_title="Modelos de Filas", layout="wide")
 
 
 st.title("Simulador de Teoria de Filas")
+
+# Expander de Guia de Fórmulas e Conversões
+with st.expander("📖 Guia de Fórmulas e Conversões (Como achar λ e μ)", expanded=False):
+    st.markdown("""
+    ### 📌 Como encontrar as taxas $\lambda$ (Chegada) e $\mu$ (Atendimento)
+    Muitos exercícios informam **tempos médios** em vez de taxas diretas. Use as fórmulas abaixo para convertê-los antes de colocar no simulador:
+    
+    *   **Taxa de Chegada ($\lambda$):**
+        $$\lambda = \\frac{1}{\\text{Tempo Médio Entre Chegadas } (E[T_a])}$$
+        *Exemplo:* Se os clientes chegam a cada **4 minutos**, a taxa de chegada é $\lambda = \\frac{1}{4} = 0.25$ clientes por minuto. Para trabalhar na escala de horas, multiplique por 60: $\lambda = 0.25 \\times 60 = 15$ clientes/hora.
+        
+    *   **Taxa de Atendimento ($\mu$):**
+        $$\mu = \\frac{1}{\\text{Tempo Médio de Atendimento } (E[T_s])}$$
+        *Exemplo:* Se o atendimento demora em média **15 minutos**, a taxa de serviço é $\mu = \\frac{1}{15} \\approx 0.0667$ clientes por minuto. Para trabalhar na escala de horas, multiplique por 60: $\mu = 4$ clientes/hora.
+        
+    *   **População Finita (Modelos $/N$):**
+        *   **$\lambda$ (Taxa de falha individual):** $\lambda = 1 / \\text{Tempo Médio de Operação (Uptime)}$
+        *   **$\mu$ (Taxa de reparo por técnico):** $\mu = 1 / \\text{Tempo Médio de Reparo (Downtime)}$
+        
+    *   **⚠️ Atenção com as unidades:**
+        Certifique-se de que **ambas as taxas ($\lambda$ e $\mu$) estão na mesma unidade de tempo** (ex: ambas em minutos ou ambas em horas).
+    
+    ---
+    
+    ### 📊 Fórmulas Principais por Modelo
+    
+    *   **Lei de Little (Geral):**
+        $$L = \\bar{\\lambda} W \\quad \\text{e} \\quad L_q = \\bar{\\lambda} W_q$$
+        *(Onde $\\bar{\\lambda}$ é a taxa de entrada efetiva no sistema).*
+        
+    *   **Modelo M/M/1:**
+        *   Utilização: $\\rho = \\frac{\\lambda}{\\mu}$
+        *   Probabilidade de sistema vazio: $P_0 = 1 - \\rho$
+        *   Clientes no sistema: $L = \\frac{\\lambda}{\\mu - \\lambda}$
+        *   Clientes na fila: $L_q = \\frac{\\lambda^2}{\\mu(\\mu - \\lambda)}$
+        *   Tempo no sistema: $W = \\frac{1}{\\mu - \\lambda}$
+        *   Tempo na fila: $W_q = \\frac{\\lambda}{\\mu(\\mu - \\lambda)}$
+        
+    *   **Modelo M/G/1 (Pollaczek-Khintchine):**
+        *   Clientes na fila: $L_q = \\frac{\\lambda^2 \sigma^2 + \\rho^2}{2(1 - \\rho)}$
+        *   Tempo na fila: $W_q = \\frac{L_q}{\\lambda}$
+        
+    *   **Modelo M/M/s:**
+        *   Utilização: $\\rho = \\frac{\\lambda}{s\\mu}$
+        *   Clientes na fila: $L_q = \\frac{P_0 (\\lambda/\\mu)^s \\rho}{s! (1-\\rho)^2}$
+    """)
+
 st.sidebar.header("Configurações")
 
 menu = [
@@ -30,7 +77,7 @@ escolha = st.sidebar.selectbox("Selecione o Modelo", menu)
 if escolha == "Prioridade Não-Preemptiva":
     st.header("Prioridade Não-Preemptiva")
 
-    mu = st.sidebar.number_input("Taxa de atendimento μ", min_value=0.0001, value=3.0, step=0.0001, format="%.4f")
+    mu = st.sidebar.number_input("Taxa de atendimento μ", min_value=0.0001, value=3.0, step=0.0001, format="%.4f", help="μ = 1 / (tempo médio de atendimento). Ex: se o serviço demora 20 min, μ = 1/20 = 0.05 atendimentos/min.")
     s  = st.sidebar.number_input("Número de servidores (s)", min_value=1, value=1, step=1)
     num_classes = st.sidebar.number_input("Número de classes", min_value=2, max_value=8, value=2, step=1)
 
@@ -40,7 +87,7 @@ if escolha == "Prioridade Não-Preemptiva":
     cols = st.columns(int(num_classes))
     for i, col in enumerate(cols):
         with col:
-            lamb_k = st.number_input(f"λ_{i+1}", min_value=0.0001, value=1.0, step=0.0001, format="%.4f", key=f"lamb_{i}")
+            lamb_k = st.number_input(f"λ_{i+1}", min_value=0.0001, value=1.0, step=0.0001, format="%.4f", key=f"lamb_{i}", help="λ = 1 / (tempo médio entre chegadas de clientes desta classe).")
             lambdas.append(lamb_k)
 
     st.markdown("---")
@@ -68,7 +115,7 @@ if escolha == "Prioridade Não-Preemptiva":
 elif escolha == "Prioridade Preemptiva":
     st.header("Prioridade Preemptiva")
 
-    mu = st.sidebar.number_input("Taxa de atendimento μ", min_value=0.0001, value=3.0, step=0.0001, format="%.4f")
+    mu = st.sidebar.number_input("Taxa de atendimento μ", min_value=0.0001, value=3.0, step=0.0001, format="%.4f", help="μ = 1 / (tempo médio de atendimento). Ex: se o serviço demora 20 min, μ = 1/20 = 0.05 atendimentos/min.")
     s  = st.sidebar.number_input("Número de servidores (s)", min_value=1, value=1, step=1)
     num_classes = st.sidebar.number_input("Número de classes", min_value=2, max_value=8, value=2, step=1)
 
@@ -78,7 +125,7 @@ elif escolha == "Prioridade Preemptiva":
     cols = st.columns(int(num_classes))
     for i, col in enumerate(cols):
         with col:
-            lamb_k = st.number_input(f"λ_{i+1}", min_value=0.0001, value=1.0, step=0.0001, format="%.4f", key=f"lamb_pre_{i}")
+            lamb_k = st.number_input(f"λ_{i+1}", min_value=0.0001, value=1.0, step=0.0001, format="%.4f", key=f"lamb_pre_{i}", help="λ = 1 / (tempo médio entre chegadas de clientes desta classe).")
             lambdas.append(lamb_k)
 
     st.markdown("---")
@@ -109,9 +156,9 @@ else:
     with st.container():
         col_in1, col_in2 = st.columns(2)
         with col_in1:
-            lamb = st.number_input("Taxa de chegada (λ)", min_value=0.0001, value=1.0, step=0.0001, format="%.4f")
+            lamb = st.number_input("Taxa de chegada (λ)", min_value=0.0001, value=1.0, step=0.0001, format="%.4f", help="λ = 1 / (tempo médio entre chegadas). Ex: se chegam a cada 4 min, λ = 1/4 = 0.25 chegadas/min.")
         with col_in2:
-            mu = st.number_input("Taxa de atendimento (μ)", min_value=0.0001, value=1.5, step=0.0001, format="%.4f")
+            mu = st.number_input("Taxa de atendimento (μ)", min_value=0.0001, value=1.5, step=0.0001, format="%.4f", help="μ = 1 / (tempo médio de atendimento). Ex: se o serviço demora 15 min, μ = 1/15 = 0.0667 atendimentos/min.")
 
         col_ex1, col_ex2 = st.columns(2)
         s, K, N, sigma = 1, 1, 1, 0.0
